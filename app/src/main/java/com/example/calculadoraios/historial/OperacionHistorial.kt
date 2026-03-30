@@ -1,6 +1,6 @@
 package com.example.calculadoraios.historial
 
-class OperacionHistorial {
-    var expresion: String = ""
-    var resultado: String = ""
-}
+data class OperacionHistorial(
+    val expresion: String,
+    val resultado: String
+)

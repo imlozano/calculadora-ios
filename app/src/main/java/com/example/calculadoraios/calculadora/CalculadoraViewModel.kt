@@ -12,161 +12,229 @@ class CalculadoraViewModel : ViewModel() {
     val displayValue = mutableStateOf("0")
     val expresion = mutableStateOf("")
 
-    private val piezas = mutableListOf<String>() // ["8", "×", "5", "-", "9"]
+    private val tokens = mutableListOf<String>()
     private var trasPulsarIgual = false
-    private var signoNegativo = false // "-" pulsado tras un operador
+    private var signoNegativoPendiente = false
+    private var enEstadoDeError = false
 
-    private fun esOp(s: String) = s == "+" || s == "-" || s == "×" || s == "÷"
+    private fun esOperador(token: String) = token == "+" || token == "-" || token == "×" || token == "÷"
 
-    // Muestra (-8) si el número es negativo
-    private fun fmtNum(s: String) = if (s.startsWith("-") && s.length > 1) "($s)" else s
+    private fun formatearToken(token: String) = if (token.startsWith("-") && token.length > 1) "($token)" else token
 
-    private fun reconstruir(): String {
-        if (piezas.isEmpty()) return if (signoNegativo) "0 -" else "0"
-        val sb = StringBuilder()
-        for (p in piezas) {
-            if (esOp(p)) sb.append(" $p ") else sb.append(fmtNum(p))
+    private fun reconstruirExpresion(): String {
+        if (tokens.isEmpty()) return if (signoNegativoPendiente) "-" else "0"
+
+        val expresionActual = buildString {
+            for (token in tokens) {
+                if (esOperador(token)) append(" $token ") else append(formatearToken(token))
+            }
         }
-        return if (signoNegativo) "$sb -" else sb.toString()
+
+        val expresionLimpia = expresionActual.trimEnd()
+        return if (signoNegativoPendiente) "$expresionLimpia -" else expresionLimpia
+    }
+
+    private fun mostrarEstadoActual() {
+        displayValue.value = reconstruirExpresion()
+    }
+
+    private fun reiniciarEstadoSiHayError() {
+        if (!enEstadoDeError) return
+        limpiar()
+    }
+
+    private fun mostrarError() {
+        tokens.clear()
+        trasPulsarIgual = false
+        signoNegativoPendiente = false
+        enEstadoDeError = true
+        expresion.value = ""
+        displayValue.value = "Error"
     }
 
     fun presionarDigito(digito: String) {
+        reiniciarEstadoSiHayError()
         expresion.value = ""
-        if (trasPulsarIgual) { piezas.clear(); trasPulsarIgual = false }
-
-        val digitoFinal = if (signoNegativo) "-$digito" else digito
-        signoNegativo = false
-
-        val ult = piezas.lastOrNull()
-        when {
-            piezas.isEmpty()  -> piezas.add(digitoFinal)
-            esOp(ult!!)       -> piezas.add(digitoFinal)
-            ult == "0"        -> piezas[piezas.lastIndex] = digitoFinal
-            else              -> piezas[piezas.lastIndex] = ult + digito
+        if (trasPulsarIgual) {
+            tokens.clear()
+            trasPulsarIgual = false
         }
-        displayValue.value = reconstruir()
+
+        val numeroActual = if (signoNegativoPendiente) "-$digito" else digito
+        signoNegativoPendiente = false
+
+        val ultimoToken = tokens.lastOrNull()
+        when {
+            tokens.isEmpty() -> tokens.add(numeroActual)
+            ultimoToken == null -> tokens.add(numeroActual)
+            esOperador(ultimoToken) -> tokens.add(numeroActual)
+            ultimoToken == "0" -> tokens[tokens.lastIndex] = numeroActual
+            ultimoToken == "-0" -> tokens[tokens.lastIndex] = "-$digito"
+            else -> tokens[tokens.lastIndex] = ultimoToken + digito
+        }
+        mostrarEstadoActual()
     }
 
     fun presionarDecimal() {
+        reiniciarEstadoSiHayError()
         expresion.value = ""
-        if (trasPulsarIgual) { piezas.clear(); trasPulsarIgual = false }
-        signoNegativo = false
-        val ult = piezas.lastOrNull()
-        when {
-            piezas.isEmpty() || esOp(ult!!) -> piezas.add("0.")
-            !ult!!.contains(".")            -> piezas[piezas.lastIndex] = "$ult."
+        if (trasPulsarIgual) {
+            tokens.clear()
+            trasPulsarIgual = false
         }
-        displayValue.value = reconstruir()
+
+        val ultimoToken = tokens.lastOrNull()
+        val nuevoTokenDecimal = if (signoNegativoPendiente) "-0." else "0."
+
+        when {
+            tokens.isEmpty() -> tokens.add(nuevoTokenDecimal)
+            ultimoToken == null -> tokens.add(nuevoTokenDecimal)
+            esOperador(ultimoToken) -> tokens.add(nuevoTokenDecimal)
+            !ultimoToken.contains(".") -> tokens[tokens.lastIndex] = "$ultimoToken."
+        }
+
+        signoNegativoPendiente = false
+        mostrarEstadoActual()
     }
 
     fun presionarOperador(operador: String) {
+        if (enEstadoDeError) return
         expresion.value = ""
         trasPulsarIgual = false
-        if (piezas.isEmpty()) return
+        if (tokens.isEmpty()) return
 
-        val ult = piezas.last()
+        val ultimoToken = tokens.last()
         when {
-            esOp(ult) -> {
+            esOperador(ultimoToken) -> {
                 if (operador == "-") {
-                    signoNegativo = true        // próximo número será negativo
+                    signoNegativoPendiente = true
                 } else {
-                    signoNegativo = false
-                    piezas[piezas.lastIndex] = operador  // reemplaza operador
+                    signoNegativoPendiente = false
+                    tokens[tokens.lastIndex] = operador
                 }
             }
-            signoNegativo -> {
+            signoNegativoPendiente -> {
                 if (operador != "-") {
-                    signoNegativo = false
-                    val idxOp = piezas.indexOfLast { esOp(it) }
-                    if (idxOp >= 0) piezas[idxOp] = operador
+                    signoNegativoPendiente = false
+                    val indiceUltimoOperador = tokens.indexOfLast { esOperador(it) }
+                    if (indiceUltimoOperador >= 0) {
+                        tokens[indiceUltimoOperador] = operador
+                    }
                 }
             }
             else -> {
-                signoNegativo = false
-                piezas.add(operador)
+                signoNegativoPendiente = false
+                tokens.add(operador)
             }
         }
-        displayValue.value = reconstruir()
+        mostrarEstadoActual()
     }
 
     fun calcularResultado() {
-        signoNegativo = false
-        val trabajo = piezas.dropLastWhile { esOp(it) }
-        if (trabajo.size < 3) return
+        if (enEstadoDeError) return
+
+        signoNegativoPendiente = false
+        val tokensParaCalculo = tokens.dropLastWhile { esOperador(it) }
+        if (tokensParaCalculo.size < 3) return
 
         try {
-            val temp = trabajo.toMutableList()
-            var i = 1
-            while (i < temp.size) {
-                val op = temp[i]
-                if (op == "×" || op == "÷") {
-                    val izq = temp[i - 1].toDoubleOrNull() ?: break
-                    val der = temp[i + 1].toDoubleOrNull() ?: break
-                    val res = logica.calcular(izq, op, der)
-                    temp[i - 1] = logica.formatearNumero(res)
-                    temp.removeAt(i)     // elimina operador
-                    temp.removeAt(i)     // elimina operando derecho
+            val tokensReducidos = tokensParaCalculo.toMutableList()
+            var indice = 1
+            while (indice < tokensReducidos.size) {
+                val operador = tokensReducidos[indice]
+                if (operador == "×" || operador == "÷") {
+                    val numeroIzquierdo = tokensReducidos[indice - 1].toDoubleOrNull() ?: break
+                    val numeroDerecho = tokensReducidos[indice + 1].toDoubleOrNull() ?: break
+                    val resultadoParcial = logica.calcular(numeroIzquierdo, operador, numeroDerecho)
+                    tokensReducidos[indice - 1] = logica.formatearNumero(resultadoParcial)
+                    tokensReducidos.removeAt(indice)
+                    tokensReducidos.removeAt(indice)
                 } else {
-                    i += 2
+                    indice += 2
                 }
             }
 
-            var resultado = temp[0].toDoubleOrNull() ?: return
-            var j = 1
-            while (j + 1 < temp.size) {
-                val op = temp[j]
-                val sig = temp[j + 1].toDoubleOrNull() ?: break
-                resultado = logica.calcular(resultado, op, sig)
-                j += 2
+            var resultadoFinal = tokensReducidos[0].toDoubleOrNull() ?: return
+            var indiceLectura = 1
+            while (indiceLectura + 1 < tokensReducidos.size) {
+                val operador = tokensReducidos[indiceLectura]
+                val siguienteNumero = tokensReducidos[indiceLectura + 1].toDoubleOrNull() ?: break
+                resultadoFinal = logica.calcular(resultadoFinal, operador, siguienteNumero)
+                indiceLectura += 2
             }
 
-            val resultadoStr = logica.formatearNumero(resultado)
-            val expStr = trabajo.joinToString("") { t ->
-                if (esOp(t)) " $t " else fmtNum(t)
+            val resultadoTexto = logica.formatearNumero(resultadoFinal)
+            val operacionTexto = tokensParaCalculo.joinToString("") { token ->
+                if (esOperador(token)) " $token " else formatearToken(token)
             }
 
-            historialViewModel.agregarOperacion(expStr, resultadoStr)
-            expresion.value = "$expStr ="
-            displayValue.value = resultadoStr
+            historialViewModel.agregarOperacion(operacionTexto, resultadoTexto)
+            expresion.value = "$operacionTexto ="
+            displayValue.value = resultadoTexto
 
-            piezas.clear()
-            piezas.add(resultadoStr)
+            tokens.clear()
+            tokens.add(resultadoTexto)
             trasPulsarIgual = true
+            enEstadoDeError = false
 
-        } catch (e: ArithmeticException) {
-            displayValue.value = "Error"
-            limpiar()
+        } catch (_: ArithmeticException) {
+            mostrarError()
         }
     }
+
     fun limpiar() {
-        piezas.clear()
-        signoNegativo = false
+        tokens.clear()
+        signoNegativoPendiente = false
         displayValue.value = "0"
         expresion.value = ""
         trasPulsarIgual = false
+        enEstadoDeError = false
     }
 
     fun borrarUltimo() {
+        if (enEstadoDeError) return
         if (trasPulsarIgual) return
-        if (signoNegativo) { signoNegativo = false; displayValue.value = reconstruir(); return }
-        val ult = piezas.lastOrNull() ?: return
-        if (ult.length <= 1) piezas.removeAt(piezas.lastIndex)
-        else piezas[piezas.lastIndex] = ult.dropLast(1)
-        displayValue.value = reconstruir()
+        if (signoNegativoPendiente) {
+            signoNegativoPendiente = false
+            mostrarEstadoActual()
+            return
+        }
+
+        val ultimoToken = tokens.lastOrNull() ?: return
+        when {
+            esOperador(ultimoToken) -> tokens.removeAt(tokens.lastIndex)
+            ultimoToken.startsWith("-") && ultimoToken.length == 2 -> {
+                tokens.removeAt(tokens.lastIndex)
+                signoNegativoPendiente = tokens.lastOrNull()?.let(::esOperador) == true
+            }
+            ultimoToken.length <= 1 -> tokens.removeAt(tokens.lastIndex)
+            else -> tokens[tokens.lastIndex] = ultimoToken.dropLast(1)
+        }
+        mostrarEstadoActual()
     }
 
     fun cambiarSigno() {
-        val ult = piezas.lastOrNull() ?: return
-        if (esOp(ult)) return
-        piezas[piezas.lastIndex] = if (ult.startsWith("-")) ult.substring(1) else "-$ult"
-        displayValue.value = reconstruir()
+        if (enEstadoDeError) return
+
+        val ultimoToken = tokens.lastOrNull() ?: return
+        if (esOperador(ultimoToken) || ultimoToken == "0") return
+
+        tokens[tokens.lastIndex] = if (ultimoToken.startsWith("-")) {
+            ultimoToken.substring(1)
+        } else {
+            "-$ultimoToken"
+        }
+        mostrarEstadoActual()
     }
 
     fun porcentaje() {
-        val ult = piezas.lastOrNull() ?: return
-        if (esOp(ult)) return
-        val v = ult.toDoubleOrNull() ?: return
-        piezas[piezas.lastIndex] = logica.formatearNumero(v / 100)
-        displayValue.value = reconstruir()
+        if (enEstadoDeError) return
+
+        val ultimoToken = tokens.lastOrNull() ?: return
+        if (esOperador(ultimoToken)) return
+
+        val valorActual = ultimoToken.toDoubleOrNull() ?: return
+        tokens[tokens.lastIndex] = logica.formatearNumero(valorActual / 100)
+        mostrarEstadoActual()
     }
 }
