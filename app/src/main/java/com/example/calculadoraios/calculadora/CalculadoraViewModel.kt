@@ -49,7 +49,7 @@ class CalculadoraViewModel : ViewModel() {
         signoNegativoPendiente = false
         enEstadoDeError = true
         expresion.value = ""
-        displayValue.value = "Error"
+        displayValue.value = "Sin definir"
     }
 
     fun presionarDigito(digito: String) {
