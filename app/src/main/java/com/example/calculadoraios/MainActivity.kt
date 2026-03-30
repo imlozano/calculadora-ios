@@ -6,7 +6,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.calculadoraios.navegacion.Navegacion
-import com.example.calculadoraios.viewmodel.CalculadoraViewModel
+import com.example.calculadoraios.calculadora.CalculadoraViewModel
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier

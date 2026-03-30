@@ -1,31 +1,25 @@
-package com.example.calculadoraios.pantallas
+package com.example.calculadoraios.calculadora
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.calculadoraios.viewmodel.CalculadoraViewModel
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.runtime.LaunchedEffect
 
-private val colorFondo       = Color(0xFF000000)
-private val colorGrisOscuro  = Color(0xFF2A2928)
-private val colorGrisClaro   = Color(0xFF5E5D59)
-private val colorNaranja     = Color(0xFFFFA70E)
-private val colorBlanco      = Color.White
+private val colorFondo      = Color(0xFF000000)
+private val colorGrisOscuro = Color(0xFF2A2928)
+private val colorGrisClaro  = Color(0xFF5E5D59)
+private val colorNaranja    = Color(0xFFFFA70E)
+private val colorBlanco     = Color.White
 
 @Composable
 fun PantallaCalculadora(
@@ -34,9 +28,10 @@ fun PantallaCalculadora(
 ) {
     val scrollState = rememberScrollState()
 
-    LaunchedEffect(viewModel.displayValue) {
+    LaunchedEffect(viewModel.displayValue.value) {
         scrollState.scrollTo(scrollState.maxValue)
     }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -44,32 +39,42 @@ fun PantallaCalculadora(
             .padding(horizontal = 12.dp),
         verticalArrangement = Arrangement.Bottom
     ) {
-        // Botón historial arriba a la derecha
+        // Botón historial (ícono reloj, arriba a la derecha)
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 52.dp, bottom = 8.dp),
             horizontalArrangement = Arrangement.End
         ) {
-            TextButton(onClick = onVerHistorial) {
-                Text("Historial", color = colorNaranja, fontSize = 16.sp)
+            IconButton(
+                onClick = onVerHistorial,
+                modifier = Modifier
+                    .size(52.dp)
+                    .background(colorGrisClaro, CircleShape)
+            ) {
+                Text("⏱", fontSize = 22.sp)
             }
         }
 
-        // Expresión encadenada
+        Spacer(modifier = Modifier.weight(1f))
+
+        // Expresión encadenada (pequeña, gris)
         Text(
-            text = viewModel.expresion,
+            text = viewModel.expresion.value,
             color = Color.Gray,
-            fontSize = 24.sp,
+            fontSize = 28.sp,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(end = 8.dp),
-            textAlign = TextAlign.End
+            textAlign = TextAlign.End,
+            maxLines = 1
         )
 
-        // Display principal
+        // Display principal con scroll horizontal
         Text(
-            text = viewModel.displayValue,
+            text = viewModel.displayValue.value,
             color = colorBlanco,
-            fontSize = if (viewModel.displayValue.length > 9) 52.sp else 80.sp,
+            fontSize = if (viewModel.displayValue.value.length > 9) 52.sp else 80.sp,
             fontWeight = FontWeight.Light,
             modifier = Modifier
                 .fillMaxWidth()
@@ -82,14 +87,13 @@ fun PantallaCalculadora(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Fila 1: AC  +/-  %  ÷
+        // Fila 1: ⌫  AC  %  ÷
         FilaBotones {
-            BotonCalc("AC",  colorGrisClaro)  { viewModel.limpiar() }
-            BotonCalc("+/-", colorGrisClaro)  { viewModel.cambiarSigno() }
-            BotonCalc("%",   colorGrisClaro)  { viewModel.porcentaje() }
-            BotonCalc("÷",   colorNaranja)    { viewModel.presionarOperador("÷") }
+            BotonCalc("⌫", colorGrisClaro) { viewModel.borrarUltimo() }
+            BotonCalc("AC", colorGrisClaro) { viewModel.limpiar() }
+            BotonCalc("%",  colorGrisClaro) { viewModel.porcentaje() }
+            BotonCalc("÷",  colorNaranja)   { viewModel.presionarOperador("÷") }
         }
-
         // Fila 2: 7  8  9  ×
         FilaBotones {
             BotonCalc("7", colorGrisOscuro) { viewModel.presionarDigito("7") }
@@ -97,7 +101,6 @@ fun PantallaCalculadora(
             BotonCalc("9", colorGrisOscuro) { viewModel.presionarDigito("9") }
             BotonCalc("×", colorNaranja)    { viewModel.presionarOperador("×") }
         }
-
         // Fila 3: 4  5  6  -
         FilaBotones {
             BotonCalc("4", colorGrisOscuro) { viewModel.presionarDigito("4") }
@@ -105,7 +108,6 @@ fun PantallaCalculadora(
             BotonCalc("6", colorGrisOscuro) { viewModel.presionarDigito("6") }
             BotonCalc("-", colorNaranja)    { viewModel.presionarOperador("-") }
         }
-
         // Fila 4: 1  2  3  +
         FilaBotones {
             BotonCalc("1", colorGrisOscuro) { viewModel.presionarDigito("1") }
@@ -113,34 +115,12 @@ fun PantallaCalculadora(
             BotonCalc("3", colorGrisOscuro) { viewModel.presionarDigito("3") }
             BotonCalc("+", colorNaranja)    { viewModel.presionarOperador("+") }
         }
-
-        // Fila 5: 0 (ancho doble)  .  =
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 6.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Button(
-                onClick = { viewModel.presionarDigito("0") },
-                modifier = Modifier
-                    .weight(2f)
-                    .height(88.dp),
-                shape = RoundedCornerShape(40.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = colorGrisOscuro)
-            ) {
-                Box(modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        text = "0",
-                        color = colorBlanco,
-                        fontSize = 32.sp,
-                        modifier = Modifier.align(Alignment.CenterStart).padding(start = 8.dp)
-                    )
-                }
-            }
-
-            BotonCalc(".", colorGrisOscuro, Modifier.weight(1f)) { viewModel.presionarDecimal() }
-            BotonCalc("=", colorNaranja,    Modifier.weight(1f)) { viewModel.calcularResultado() }
+        // Fila 5: +/-  0  .  =  (todos iguales, como iOS real)
+        FilaBotones {
+            BotonCalc("+/-", colorGrisClaro)  { viewModel.cambiarSigno() }
+            BotonCalc("0",   colorGrisOscuro) { viewModel.presionarDigito("0") }
+            BotonCalc(".",   colorGrisOscuro) { viewModel.presionarDecimal() }
+            BotonCalc("=",   colorNaranja)    { viewModel.calcularResultado() }
         }
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -171,11 +151,6 @@ fun RowScope.BotonCalc(
         shape = CircleShape,
         colors = ButtonDefaults.buttonColors(containerColor = color)
     ) {
-        Text(
-            text = texto,
-            color = colorBlanco,
-            fontSize = 30.sp,
-            fontWeight = FontWeight.Normal
-        )
+        Text(texto, color = colorBlanco, fontSize = 28.sp, fontWeight = FontWeight.Normal)
     }
 }

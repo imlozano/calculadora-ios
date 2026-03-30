@@ -1,6 +1,5 @@
-package com.example.calculadoraios.pantallas
+package com.example.calculadoraios.historial
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -14,7 +13,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.calculadoraios.viewmodel.CalculadoraViewModel
+import com.example.calculadoraios.calculadora.CalculadoraViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -41,7 +40,7 @@ fun PantallaHistorial(
         containerColor = Color.Black
     ) { paddingValues ->
 
-        if (viewModel.historial.isEmpty()) {
+        if (viewModel.historialViewModel.operaciones.value.isEmpty()) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -57,7 +56,7 @@ fun PantallaHistorial(
                     .padding(paddingValues)
                     .padding(horizontal = 16.dp)
             ) {
-                items(viewModel.historial) { operacion ->
+                items(viewModel.historialViewModel.operaciones.value) { operacion ->
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
