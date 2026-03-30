@@ -17,11 +17,14 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.calculadoraios.viewmodel.CalculadoraViewModel
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.runtime.LaunchedEffect
 
 private val colorFondo       = Color(0xFF000000)
-private val colorGrisOscuro  = Color(0xFF505050)
-private val colorGrisClaro   = Color(0xFFA5A5A5)
-private val colorNaranja     = Color(0xFFFF9F0A)
+private val colorGrisOscuro  = Color(0xFF2A2928)
+private val colorGrisClaro   = Color(0xFF5E5D59)
+private val colorNaranja     = Color(0xFFFFA70E)
 private val colorBlanco      = Color.White
 
 @Composable
@@ -29,6 +32,11 @@ fun PantallaCalculadora(
     viewModel: CalculadoraViewModel,
     onVerHistorial: () -> Unit
 ) {
+    val scrollState = rememberScrollState()
+
+    LaunchedEffect(viewModel.displayValue) {
+        scrollState.scrollTo(scrollState.maxValue)
+    }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -65,8 +73,10 @@ fun PantallaCalculadora(
             fontWeight = FontWeight.Light,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(end = 8.dp, bottom = 8.dp),
+                .padding(end = 8.dp, bottom = 8.dp)
+                .horizontalScroll(scrollState),
             textAlign = TextAlign.End,
+            softWrap = false,
             maxLines = 1
         )
 
@@ -115,7 +125,7 @@ fun PantallaCalculadora(
                 onClick = { viewModel.presionarDigito("0") },
                 modifier = Modifier
                     .weight(2f)
-                    .height(80.dp),
+                    .height(88.dp),
                 shape = RoundedCornerShape(40.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = colorGrisOscuro)
             ) {
@@ -157,7 +167,7 @@ fun RowScope.BotonCalc(
 ) {
     Button(
         onClick = onClick,
-        modifier = modifier.height(80.dp),
+        modifier = modifier.size(88.dp),
         shape = CircleShape,
         colors = ButtonDefaults.buttonColors(containerColor = color)
     ) {
