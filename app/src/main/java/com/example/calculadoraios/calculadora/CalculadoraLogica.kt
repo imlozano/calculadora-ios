@@ -1,4 +1,4 @@
-package com.example.calculadoraios.domain
+package com.example.calculadoraios.calculadora
 
 class CalculadoraLogica {
 

@@ -1,6 +1,5 @@
-package com.example.calculadoraios.pantallas
+package com.example.calculadoraios.historial
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -11,15 +10,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.calculadoraios.viewmodel.CalculadoraViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PantallaHistorial(
-    viewModel: CalculadoraViewModel,
+    viewModel: HistorialViewModel,
     onVolver: () -> Unit
 ) {
     Scaffold(
@@ -41,7 +38,7 @@ fun PantallaHistorial(
         containerColor = Color.Black
     ) { paddingValues ->
 
-        if (viewModel.historial.isEmpty()) {
+        if (viewModel.operaciones.value.isEmpty()) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -57,7 +54,7 @@ fun PantallaHistorial(
                     .padding(paddingValues)
                     .padding(horizontal = 16.dp)
             ) {
-                items(viewModel.historial) { operacion ->
+                items(viewModel.operaciones.value) { operacion ->
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -65,15 +62,9 @@ fun PantallaHistorial(
                         horizontalAlignment = Alignment.End
                     ) {
                         Text(
-                            text = operacion.expresion,
-                            color = Color.Gray,
-                            fontSize = 20.sp
-                        )
-                        Text(
-                            text = "= ${operacion.resultado}",
+                            text = "${operacion.expresion} = ${operacion.resultado}",
                             color = Color.White,
-                            fontSize = 30.sp,
-                            fontWeight = FontWeight.Light
+                            fontSize = 24.sp
                         )
                     }
                     HorizontalDivider(color = Color(0xFF333333))

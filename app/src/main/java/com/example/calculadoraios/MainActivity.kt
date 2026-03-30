@@ -5,12 +5,8 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.calculadoraios.calculadora.CalculadoraViewModel
 import com.example.calculadoraios.navegacion.Navegacion
-import com.example.calculadoraios.viewmodel.CalculadoraViewModel
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
 import com.example.calculadoraios.ui.theme.CalculadoraiOSTheme
 
 class MainActivity : ComponentActivity() {
@@ -18,24 +14,10 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            val viewModel: CalculadoraViewModel = viewModel()
-            Navegacion(viewModel)
+            CalculadoraiOSTheme {
+                val viewModel: CalculadoraViewModel = viewModel()
+                Navegacion(viewModel)
+            }
         }
     }
 }
-
-//@Composable
-//fun Greeting(name: String, modifier: Modifier = Modifier) {
-//    Text(
-//        text = "Hello $name!",
-//        modifier = modifier
-//    )
-//}
-//
-//@Preview(showBackground = true)
-//@Composable
-//fun GreetingPreview() {
-//    CalculadoraiOSTheme {
-//        Greeting("Android")
-//    }
-//}
