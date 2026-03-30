@@ -12,115 +12,161 @@ class CalculadoraViewModel : ViewModel() {
     val displayValue = mutableStateOf("0")
     val expresion = mutableStateOf("")
 
-    private var primerOperando: Double? = null
-    private var operadorActual: String = ""
-    private var esperandoSegundoOperando: Boolean = false
+    private val piezas = mutableListOf<String>() // ["8", "×", "5", "-", "9"]
+    private var trasPulsarIgual = false
+    private var signoNegativo = false // "-" pulsado tras un operador
+
+    private fun esOp(s: String) = s == "+" || s == "-" || s == "×" || s == "÷"
+
+    // Muestra (-8) si el número es negativo
+    private fun fmtNum(s: String) = if (s.startsWith("-") && s.length > 1) "($s)" else s
+
+    private fun reconstruir(): String {
+        if (piezas.isEmpty()) return if (signoNegativo) "0 -" else "0"
+        val sb = StringBuilder()
+        for (p in piezas) {
+            if (esOp(p)) sb.append(" $p ") else sb.append(fmtNum(p))
+        }
+        return if (signoNegativo) "$sb -" else sb.toString()
+    }
 
     fun presionarDigito(digito: String) {
-        if (esperandoSegundoOperando) {
-            displayValue.value = digito
-            esperandoSegundoOperando = false
-        } else {
-            displayValue.value = if (displayValue.value == "0") digito
-            else displayValue.value + digito
+        expresion.value = ""
+        if (trasPulsarIgual) { piezas.clear(); trasPulsarIgual = false }
+
+        val digitoFinal = if (signoNegativo) "-$digito" else digito
+        signoNegativo = false
+
+        val ult = piezas.lastOrNull()
+        when {
+            piezas.isEmpty()  -> piezas.add(digitoFinal)
+            esOp(ult!!)       -> piezas.add(digitoFinal)
+            ult == "0"        -> piezas[piezas.lastIndex] = digitoFinal
+            else              -> piezas[piezas.lastIndex] = ult + digito
         }
-        if (primerOperando != null && operadorActual.isNotEmpty() && !esperandoSegundoOperando) {
-            expresion.value = "${logica.formatearNumero(primerOperando!!)} $operadorActual ${displayValue.value}"
-        }
+        displayValue.value = reconstruir()
     }
 
     fun presionarDecimal() {
-        if (esperandoSegundoOperando) {
-            displayValue.value = "0."
-            esperandoSegundoOperando = false
-            return
+        expresion.value = ""
+        if (trasPulsarIgual) { piezas.clear(); trasPulsarIgual = false }
+        signoNegativo = false
+        val ult = piezas.lastOrNull()
+        when {
+            piezas.isEmpty() || esOp(ult!!) -> piezas.add("0.")
+            !ult!!.contains(".")            -> piezas[piezas.lastIndex] = "$ult."
         }
-        if (!displayValue.value.contains(".")) {
-            displayValue.value += "."
-        }
-        if (primerOperando != null && operadorActual.isNotEmpty()) {
-            expresion.value = "${logica.formatearNumero(primerOperando!!)} $operadorActual ${displayValue.value}"
-        }
+        displayValue.value = reconstruir()
     }
 
     fun presionarOperador(operador: String) {
-        if (esperandoSegundoOperando && operador == "-") {
-            displayValue.value = "-"
-            esperandoSegundoOperando = false
-            return
-        }
+        expresion.value = ""
+        trasPulsarIgual = false
+        if (piezas.isEmpty()) return
 
-        val valorActual = displayValue.value.toDoubleOrNull() ?: return
-
-        if (primerOperando != null && !esperandoSegundoOperando) {
-            try {
-                val resultado = logica.calcular(primerOperando!!, operadorActual, valorActual)
-                displayValue.value = logica.formatearNumero(resultado)
-                primerOperando = resultado
-            } catch (e: ArithmeticException) {
-                displayValue.value = "Error"
-                limpiar()
-                return
+        val ult = piezas.last()
+        when {
+            esOp(ult) -> {
+                if (operador == "-") {
+                    signoNegativo = true        // próximo número será negativo
+                } else {
+                    signoNegativo = false
+                    piezas[piezas.lastIndex] = operador  // reemplaza operador
+                }
             }
-        } else {
-            primerOperando = valorActual
+            signoNegativo -> {
+                if (operador != "-") {
+                    signoNegativo = false
+                    val idxOp = piezas.indexOfLast { esOp(it) }
+                    if (idxOp >= 0) piezas[idxOp] = operador
+                }
+            }
+            else -> {
+                signoNegativo = false
+                piezas.add(operador)
+            }
         }
-
-        operadorActual = operador
-        expresion.value = "${logica.formatearNumero(primerOperando!!)} $operador"
-        esperandoSegundoOperando = true
+        displayValue.value = reconstruir()
     }
 
     fun calcularResultado() {
-        val segundoOperando = displayValue.value.toDoubleOrNull() ?: return
-        if (primerOperando == null || operadorActual.isEmpty()) return
+        signoNegativo = false
+        val trabajo = piezas.dropLastWhile { esOp(it) }
+        if (trabajo.size < 3) return
 
         try {
-            val resultado = logica.calcular(primerOperando!!, operadorActual, segundoOperando)
+            val temp = trabajo.toMutableList()
+            var i = 1
+            while (i < temp.size) {
+                val op = temp[i]
+                if (op == "×" || op == "÷") {
+                    val izq = temp[i - 1].toDoubleOrNull() ?: break
+                    val der = temp[i + 1].toDoubleOrNull() ?: break
+                    val res = logica.calcular(izq, op, der)
+                    temp[i - 1] = logica.formatearNumero(res)
+                    temp.removeAt(i)     // elimina operador
+                    temp.removeAt(i)     // elimina operando derecho
+                } else {
+                    i += 2
+                }
+            }
+
+            var resultado = temp[0].toDoubleOrNull() ?: return
+            var j = 1
+            while (j + 1 < temp.size) {
+                val op = temp[j]
+                val sig = temp[j + 1].toDoubleOrNull() ?: break
+                resultado = logica.calcular(resultado, op, sig)
+                j += 2
+            }
+
             val resultadoStr = logica.formatearNumero(resultado)
-            val expStr = "${logica.formatearNumero(primerOperando!!)} $operadorActual ${logica.formatearNumero(segundoOperando)}"
+            val expStr = trabajo.joinToString("") { t ->
+                if (esOp(t)) " $t " else fmtNum(t)
+            }
 
             historialViewModel.agregarOperacion(expStr, resultadoStr)
-
             expresion.value = "$expStr ="
             displayValue.value = resultadoStr
-            primerOperando = resultado
-            operadorActual = ""
-            esperandoSegundoOperando = true
+
+            piezas.clear()
+            piezas.add(resultadoStr)
+            trasPulsarIgual = true
 
         } catch (e: ArithmeticException) {
             displayValue.value = "Error"
-            expresion.value = ""
             limpiar()
         }
     }
-
     fun limpiar() {
+        piezas.clear()
+        signoNegativo = false
         displayValue.value = "0"
         expresion.value = ""
-        primerOperando = null
-        operadorActual = ""
-        esperandoSegundoOperando = false
-    }
-
-    fun cambiarSigno() {
-        val valor = displayValue.value.toDoubleOrNull() ?: return
-        displayValue.value = logica.formatearNumero(-valor)
-    }
-
-    fun porcentaje() {
-        val valor = displayValue.value.toDoubleOrNull() ?: return
-        displayValue.value = logica.formatearNumero(valor / 100)
+        trasPulsarIgual = false
     }
 
     fun borrarUltimo() {
-        if (esperandoSegundoOperando) return
-        val actual = displayValue.value
-        displayValue.value = if (actual.length <= 1) "0" else actual.dropLast(1)
-        if (primerOperando != null && operadorActual.isNotEmpty()) {
-            expresion.value = "${logica.formatearNumero(primerOperando!!)} $operadorActual ${displayValue.value}"
-        }
+        if (trasPulsarIgual) return
+        if (signoNegativo) { signoNegativo = false; displayValue.value = reconstruir(); return }
+        val ult = piezas.lastOrNull() ?: return
+        if (ult.length <= 1) piezas.removeAt(piezas.lastIndex)
+        else piezas[piezas.lastIndex] = ult.dropLast(1)
+        displayValue.value = reconstruir()
     }
 
+    fun cambiarSigno() {
+        val ult = piezas.lastOrNull() ?: return
+        if (esOp(ult)) return
+        piezas[piezas.lastIndex] = if (ult.startsWith("-")) ult.substring(1) else "-$ult"
+        displayValue.value = reconstruir()
+    }
 
+    fun porcentaje() {
+        val ult = piezas.lastOrNull() ?: return
+        if (esOp(ult)) return
+        val v = ult.toDoubleOrNull() ?: return
+        piezas[piezas.lastIndex] = logica.formatearNumero(v / 100)
+        displayValue.value = reconstruir()
+    }
 }
