@@ -21,7 +21,7 @@ fun Navegacion(viewModel: CalculadoraViewModel) {
         }
         composable("historial") {
             PantallaHistorial(
-                viewModel = viewModel,
+                viewModel = viewModel.historialViewModel,
                 onVolver = { navController.popBackStack() }
             )
         }

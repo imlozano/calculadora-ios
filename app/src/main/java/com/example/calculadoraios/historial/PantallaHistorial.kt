@@ -12,12 +12,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.calculadoraios.calculadora.CalculadoraViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PantallaHistorial(
-    viewModel: CalculadoraViewModel,
+    viewModel: HistorialViewModel,
     onVolver: () -> Unit
 ) {
     Scaffold(
@@ -39,7 +38,7 @@ fun PantallaHistorial(
         containerColor = Color.Black
     ) { paddingValues ->
 
-        if (viewModel.historialViewModel.operaciones.value.isEmpty()) {
+        if (viewModel.operaciones.value.isEmpty()) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -55,7 +54,7 @@ fun PantallaHistorial(
                     .padding(paddingValues)
                     .padding(horizontal = 16.dp)
             ) {
-                items(viewModel.historialViewModel.operaciones.value) { operacion ->
+                items(viewModel.operaciones.value) { operacion ->
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()

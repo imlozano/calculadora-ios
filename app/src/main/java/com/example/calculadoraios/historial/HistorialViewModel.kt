@@ -1,9 +1,8 @@
 package com.example.calculadoraios.historial
 
 import androidx.compose.runtime.mutableStateOf
-import androidx.lifecycle.ViewModel
 
-class HistorialViewModel : ViewModel() {
+class HistorialViewModel {
     val operaciones = mutableStateOf<List<OperacionHistorial>>(emptyList())
 
     fun agregarOperacion(expresion: String, resultado: String) {
