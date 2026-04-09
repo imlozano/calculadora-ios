@@ -52,7 +52,7 @@ fun PantallaCalculadora(
                     .size(52.dp)
                     .background(colorGrisClaro, CircleShape)
             ) {
-                Text("⏱", fontSize = 22.sp)
+                Text("🕘", fontSize = 30.sp)
             }
         }
 
