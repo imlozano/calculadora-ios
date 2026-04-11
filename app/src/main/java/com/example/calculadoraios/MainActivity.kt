@@ -4,8 +4,6 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.calculadoraios.calculadora.CalculadoraViewModel
 import com.example.calculadoraios.navegacion.Navegacion
 import com.example.calculadoraios.ui.theme.CalculadoraiOSTheme
 
@@ -15,8 +13,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             CalculadoraiOSTheme {
-                val viewModel: CalculadoraViewModel = viewModel()
-                Navegacion(viewModel)
+               Navegacion()
             }
         }
     }
